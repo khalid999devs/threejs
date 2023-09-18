@@ -11,3 +11,16 @@ body {
 canvas {
   display: block;
 }
+
+h1 {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-transform: uppercase;
+  font-size: 5rem;
+  border: 4px solid black;
+  padding: 10px;
+  width: auto;
+  font-family: 'Courier New', Courier, monospace;
+}
