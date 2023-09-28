@@ -92,57 +92,22 @@ const stars = new THREE.Points(starGeometry, starMaterial);
 scene.add(stars);
 
 camera.position.z = 15;
-new OrbitControls(camera, renderer.domElement);
+// new OrbitControls(camera, renderer.domElement);
 
-function createBox({ lat, lng, country, population }) {
-  // 23.6345° N, 102.5528° W=mexico
-
-  const box = new THREE.Mesh(
-    new THREE.BoxGeometry(0.2, 0.2, 0.8),
-    new THREE.MeshBasicMaterial({
-      color: '#3BF7FF',
-      opacity: 0.4,
-      transparent: true,
-    })
-  );
-
-  const latitude_rad = (lat * Math.PI) / 180;
-  const longitude_rad = (lng * Math.PI) / 180;
-
-  // console.log(group);
-  // let x = radiusEarth * Math.cos(latitude_rad) * Math.cos(longitude_rad);
-  // let z = radiusEarth * Math.cos(latitude_rad) * Math.sin(longitude_rad);
-  // let y = radiusEarth * Math.sin(latitude_rad);
-
-  let x = radiusEarth * Math.cos(latitude_rad) * Math.sin(longitude_rad);
-  let z = radiusEarth * Math.cos(latitude_rad) * Math.cos(longitude_rad);
-  let y = radiusEarth * Math.sin(latitude_rad);
-
-  box.position.x = x;
-  box.position.y = y;
-  box.position.z = z;
-
-  box.lookAt(0, 0, 0); //whre the boxs should be faced
-  box.geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, -0.4));
-
-  group.add(box);
-
-  gsap.to(box.scale, {
-    z: 1.4,
-    duration: 2,
-    yoyo: true,
-    repeat: -1, //means Infinity,
-    ease: 'linear',
-    delay: Math.random(),
-  });
-
-  box.country = country;
-  box.population = population;
-}
 function createBoxes(countries) {
   countries.forEach((country) => {
+    const scale = country.population / 1000000000;
+    const zScale = 0.8 * scale;
+
+    const lat = country.latlng[0];
+    const lng = country.latlng[1];
+
     const box = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.2, 0.8),
+      new THREE.BoxGeometry(
+        Math.max(0.1, 0.2 * scale),
+        Math.max(0.1, 0.2 * scale),
+        Math.max(zScale, 0.4 * Math.random())
+      ),
       new THREE.MeshBasicMaterial({
         color: '#3BF7FF',
         opacity: 0.4,
@@ -162,7 +127,9 @@ function createBoxes(countries) {
     box.position.z = z;
 
     box.lookAt(0, 0, 0); //whre the boxs should be faced
-    box.geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, -0.4));
+    box.geometry.applyMatrix4(
+      new THREE.Matrix4().makeTranslation(0, 0, -zScale / 2)
+    );
 
     group.add(box);
 
@@ -175,45 +142,23 @@ function createBoxes(countries) {
       delay: Math.random(),
     });
 
-    box.country = country;
-    box.population = population;
+    box.country = country.name.common;
+    box.population = new Intl.NumberFormat().format(country.population);
   });
 }
+createBoxes(countries);
 
-createBox({
-  lat: 23.6345,
-  lng: -102.5528,
-  country: 'Mexico',
-  population: '127.6 million',
-});
-createBox({
-  lat: -14.235,
-  lng: -51.9253,
-  country: 'Brazil',
-  population: '211 million',
-});
-createBox({
-  lat: 20.5937,
-  lng: 78.9629,
-  country: 'India',
-  population: '1.366 billion',
-});
-createBox({
-  lat: 35.8617,
-  lng: 104.1954,
-  country: 'China',
-  population: '1.398 billion',
-});
-createBox({
-  lat: 37.0902,
-  lng: -95.7129,
-  country: 'USA',
-  population: '328.2 million',
-});
+group.rotation.offset = {
+  x: 0,
+  y: 0,
+};
 
 const mouse = {
   x: undefined,
   y: undefined,
+  down: false,
+  xPrev: undefined,
+  yPrev: undefined,
 };
 
 const raycaster = new THREE.Raycaster();
@@ -229,7 +174,7 @@ const IsData = {
 function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
-  group.rotation.y += 0.001;
+  // group.rotation.y += 0.001;
 
   // if (mouse.x) {
   //   gsap.to(group.rotation, {
@@ -273,18 +218,115 @@ function animate() {
 
 animate();
 
+canvasContainer.addEventListener('mousedown', ({ clientX, clientY }) => {
+  mouse.down = true;
+  mouse.xPrev = clientX;
+  mouse.yPrev = clientY;
+});
+
 addEventListener('mousemove', (event) => {
-  mouse.x = ((event.clientX - innerWidth / 2) / (innerWidth / 2)) * 2 - 1;
-  mouse.y = -(event.clientY / innerHeight) * 2 + 1;
+  event.preventDefault();
+  if (innerWidth >= 1024) {
+    mouse.x = ((event.clientX - innerWidth / 2) / (innerWidth / 2)) * 2 - 1;
+    mouse.y = -(event.clientY / innerHeight) * 2 + 1;
+  } else {
+    const offset = canvasContainer.getBoundingClientRect().top;
+
+    mouse.x = (event.clientX / innerWidth) * 2 - 1;
+    mouse.y = -((event.clientY - offset) / innerHeight) * 2 + 1;
+  }
 
   gsap.set(popUpEl, {
     x: event.clientX,
     y: event.clientY,
   });
+
+  if (mouse.down) {
+    const deltaX = event.clientX - mouse.xPrev;
+    const deltaY = event.clientY - mouse.yPrev;
+
+    group.rotation.offset.x += deltaY * 0.005;
+    group.rotation.offset.y += deltaX * 0.005;
+
+    gsap.to(group.rotation, {
+      y: group.rotation.offset.y,
+      x: group.rotation.offset.x,
+      duration: 2,
+    });
+
+    // group.rotation.y += deltaX * 0.005;
+    // group.rotation.x += deltaY * 0.005;
+
+    mouse.xPrev = event.clientX;
+    mouse.yPrev = event.clientY;
+  }
 });
 
 canvasContainer.addEventListener('click', () => {
   if (IsData.state) {
     // making the click function to the specifiq point work
   }
+});
+
+addEventListener('mouseup', (e) => {
+  mouse.down = false;
+});
+
+canvasContainer.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  camera.position.z = camera.position.z += e.deltaY * 0.01;
+});
+
+addEventListener('resize', (e) => {
+  camera.aspect = canvasContainer.offsetWidth / canvasContainer.offsetHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
+});
+
+addEventListener(
+  'touchmove',
+  (event) => {
+    event.clientX = event.touches[0].clientX;
+    event.clientY = event.touches[0].clientY;
+
+    const doesIntersect = raycaster.intersectObject(sphere);
+
+    if (doesIntersect.length > 0) mouse.down = true;
+
+    if (mouse.down) {
+      const offset = canvasContainer.getBoundingClientRect().top;
+
+      mouse.x = (event.clientX / innerWidth) * 2 - 1;
+      mouse.y = -((event.clientY - offset) / innerHeight) * 2 + 1;
+
+      gsap.set(popUpEl, {
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      const deltaX = event.clientX - mouse.xPrev;
+      const deltaY = event.clientY - mouse.yPrev;
+
+      group.rotation.offset.x += deltaY * 0.005;
+      group.rotation.offset.y += deltaX * 0.005;
+
+      gsap.to(group.rotation, {
+        y: group.rotation.offset.y,
+        x: group.rotation.offset.x,
+        duration: 2,
+      });
+
+      // group.rotation.y += deltaX * 0.005;
+      // group.rotation.x += deltaY * 0.005;
+
+      mouse.xPrev = event.clientX;
+      mouse.yPrev = event.clientY;
+    }
+  },
+  { passive: false }
+);
+
+addEventListener('touchend', (e) => {
+  mouse.down = false;
 });
