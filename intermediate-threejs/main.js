@@ -7,6 +7,7 @@ import fragmentShader from './shaders/fragment.glsl';
 import atmosphereVertexShader from './shaders/atmosphereVertex.glsl';
 import atmosphereFragmentShader from './shaders/atmosphereFragment.glsl';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import countries from './countries.json';
 
 const canvasContainer = document.getElementById('canvas-container');
 const radiusEarth = 5;
@@ -137,6 +138,46 @@ function createBox({ lat, lng, country, population }) {
 
   box.country = country;
   box.population = population;
+}
+function createBoxes(countries) {
+  countries.forEach((country) => {
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(0.2, 0.2, 0.8),
+      new THREE.MeshBasicMaterial({
+        color: '#3BF7FF',
+        opacity: 0.4,
+        transparent: true,
+      })
+    );
+
+    const latitude_rad = (lat * Math.PI) / 180;
+    const longitude_rad = (lng * Math.PI) / 180;
+
+    let x = radiusEarth * Math.cos(latitude_rad) * Math.sin(longitude_rad);
+    let z = radiusEarth * Math.cos(latitude_rad) * Math.cos(longitude_rad);
+    let y = radiusEarth * Math.sin(latitude_rad);
+
+    box.position.x = x;
+    box.position.y = y;
+    box.position.z = z;
+
+    box.lookAt(0, 0, 0); //whre the boxs should be faced
+    box.geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, -0.4));
+
+    group.add(box);
+
+    gsap.to(box.scale, {
+      z: 1.4,
+      duration: 2,
+      yoyo: true,
+      repeat: -1, //means Infinity,
+      ease: 'linear',
+      delay: Math.random(),
+    });
+
+    box.country = country;
+    box.population = population;
+  });
 }
 
 createBox({
