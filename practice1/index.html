@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>3D Object with HTML Element</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+      .html-element {
+        position: absolute;
+        pointer-events: none;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        color: white;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/renderers/CSS2DRenderer.js"></script> -->
+
+    <div class="html-element">
+      <p>This is a 3D HTML element</p>
+    </div>
+
+    <script type="module">
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+      import {
+        CSS2DRenderer,
+        CSS2DObject,
+      } from 'three/addons/renderers/CSS2DRenderer.js';
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Create a group to hold both the cube and the label
+      const group = new THREE.Group();
+
+      // Create a 3D object (rotating cube)
+      const geometry = new THREE.BoxGeometry();
+      const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+      const cube = new THREE.Mesh(geometry, material);
+      group.add(cube);
+
+      // Create a CSS2DRenderer and add it to the scene
+      const css2DRenderer = new CSS2DRenderer();
+      css2DRenderer.setSize(window.innerWidth, window.innerHeight);
+      css2DRenderer.domElement.style.position = 'absolute';
+      css2DRenderer.domElement.style.top = '0';
+      document.body.appendChild(css2DRenderer.domElement);
+
+      // Position the HTML element relative to the 3D object
+      const htmlElement = document.querySelector('.html-element');
+      const label = new CSS2DObject(htmlElement);
+      label.position.set(0, 1, 1); // Adjust the position as needed
+      group.add(label); // Attach the HTML element to the group
+
+      // Add the group to the scene
+      scene.add(group);
+
+      // Set up the camera position
+      camera.position.z = 5;
+
+      // Animation loop
+      const animate = () => {
+        requestAnimationFrame(animate);
+
+        // Rotate the group (which includes both the cube and the label)
+        group.rotation.x += 0.01;
+        group.rotation.y += 0.01;
+
+        renderer.render(scene, camera);
+        css2DRenderer.render(scene, camera);
+      };
+
+      animate();
+    </script>
+  </body>
+</html>

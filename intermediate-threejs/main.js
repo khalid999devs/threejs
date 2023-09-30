@@ -8,6 +8,10 @@ import atmosphereVertexShader from './shaders/atmosphereVertex.glsl';
 import atmosphereFragmentShader from './shaders/atmosphereFragment.glsl';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import countries from './countries.json';
+import {
+  CSS2DRenderer,
+  CSS2DObject,
+} from 'three/addons/renderers/CSS2DRenderer.js';
 
 const canvasContainer = document.getElementById('canvas-container');
 const radiusEarth = 5;
@@ -94,6 +98,37 @@ scene.add(stars);
 camera.position.z = 15;
 // new OrbitControls(camera, renderer.domElement);
 
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(
+  canvasContainer.offsetWidth,
+  canvasContainer.offsetHeight
+);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0px';
+canvasContainer.appendChild(labelRenderer.domElement);
+
+const div = document.createElement('div');
+div.className = 'place-label';
+div.textContent = 'Hello';
+const label = new CSS2DObject(div);
+label.position.set(2.42, 1.51, -4.11);
+
+group.add(label);
+
+function createLabel({ name, position: { x, y, z } }) {
+  const div = document.createElement('div');
+  div.className = 'place-label';
+  div.textContent = `${name}`;
+
+  const label = new CSS2DObject(div);
+
+  console.log(label);
+  label.position.set(x, y, z);
+  label.center.set(0, 1);
+  label.layers.set(0);
+  sphere.add(label);
+}
+
 function createBoxes(countries) {
   countries.forEach((country) => {
     const scale = country.population / 1000000000;
@@ -144,9 +179,15 @@ function createBoxes(countries) {
 
     box.country = country.name.common;
     box.population = new Intl.NumberFormat().format(country.population);
+
+    // createLabel({
+    //   name: country.name.common,
+    //   position: { x, y, z },
+    // });
   });
 }
 createBoxes(countries);
+console.log(group.children);
 
 group.rotation.offset = {
   x: 0,
@@ -174,6 +215,7 @@ const IsData = {
 function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
   // group.rotation.y += 0.001;
 
   // if (mouse.x) {
@@ -188,11 +230,16 @@ function animate() {
   raycaster.setFromCamera(mouse, camera);
 
   // calculate objects intersecting the picking ray
+
   const intersects = raycaster.intersectObjects(
-    group.children.filter((mesh) => mesh.geometry.type === 'BoxGeometry')
+    group.children.filter((mesh) => {
+      if (mesh.geometry) return mesh.geometry.type === 'BoxGeometry';
+    })
   );
 
-  group.children.forEach((mesh) => (mesh.material.opacity = 0.4));
+  group.children.forEach((mesh) => {
+    if (mesh.material) return (mesh.material.opacity = 0.4);
+  });
 
   gsap.set(popUpEl, {
     display: 'none',

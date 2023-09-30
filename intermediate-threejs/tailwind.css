@@ -664,6 +664,15 @@ video {
   font-family: 'Lato', sans-serif;
 }
 
+.place-label {
+  color: white;
+  background-color: black;
+  padding: 5px;
+  height: 100px;
+  width: 100px;
+  font-weight: bolder;
+}
+
 @media (min-width: 1024px) {
   .lg\:flex {
     display: flex;
